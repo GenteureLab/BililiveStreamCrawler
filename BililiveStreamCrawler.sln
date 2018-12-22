@@ -1,0 +1,37 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.28307.106
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BililiveStreamCrawler.Common", "BililiveStreamCrawler.Common\BililiveStreamCrawler.Common.csproj", "{6326E4B0-ED95-41FD-9CF8-2C524064680F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BililiveStreamCrawler.Server", "BililiveStreamCrawler.Server\BililiveStreamCrawler.Server.csproj", "{F388E837-D975-4D05-9C72-6528F98DADC3}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BililiveStreamCrawler.Client", "BililiveStreamCrawler.Client\BililiveStreamCrawler.Client.csproj", "{6B69C2C8-5E92-4EC0-8BC3-55487C34C520}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{6326E4B0-ED95-41FD-9CF8-2C524064680F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6326E4B0-ED95-41FD-9CF8-2C524064680F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6326E4B0-ED95-41FD-9CF8-2C524064680F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6326E4B0-ED95-41FD-9CF8-2C524064680F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F388E837-D975-4D05-9C72-6528F98DADC3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F388E837-D975-4D05-9C72-6528F98DADC3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F388E837-D975-4D05-9C72-6528F98DADC3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F388E837-D975-4D05-9C72-6528F98DADC3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6B69C2C8-5E92-4EC0-8BC3-55487C34C520}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6B69C2C8-5E92-4EC0-8BC3-55487C34C520}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6B69C2C8-5E92-4EC0-8BC3-55487C34C520}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6B69C2C8-5E92-4EC0-8BC3-55487C34C520}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {266243E3-B865-4DA0-9BB4-2775424B5D67}
+	EndGlobalSection
+EndGlobal
