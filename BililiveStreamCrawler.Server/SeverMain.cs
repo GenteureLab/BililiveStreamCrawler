@@ -1,8 +1,8 @@
 ﻿using System;
 
-namespace BililiveStreamCrawler.Client
+namespace BililiveStreamCrawler.Server
 {
-    class Program
+    class SeverMain
     {
         static void Main(string[] args)
         {
