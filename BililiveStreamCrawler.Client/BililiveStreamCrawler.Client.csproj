@@ -12,6 +12,7 @@
   <ItemGroup>
     <ProjectReference Include="..\BililiveRecorder.FlvProcessor\BililiveRecorder.FlvProcessor.csproj" />
     <ProjectReference Include="..\BililiveStreamCrawler.Common\BililiveStreamCrawler.Common.csproj" />
+    <ProjectReference Include="..\websocket-sharp-standard\websocket-sharp-standard.csproj" />
   </ItemGroup>
 
 </Project>

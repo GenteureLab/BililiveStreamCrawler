@@ -11,6 +11,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BililiveStreamCrawler.Clien
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BililiveRecorder.FlvProcessor", "BililiveRecorder.FlvProcessor\BililiveRecorder.FlvProcessor.csproj", "{BE5EC848-657F-49FE-B8CF-A1F916AC3E80}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "websocket-sharp-standard", "websocket-sharp-standard\websocket-sharp-standard.csproj", "{96DC69E2-6D43-46E2-83FE-FD3C9BDB1DCB}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -33,6 +35,10 @@ Global
 		{BE5EC848-657F-49FE-B8CF-A1F916AC3E80}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{BE5EC848-657F-49FE-B8CF-A1F916AC3E80}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{BE5EC848-657F-49FE-B8CF-A1F916AC3E80}.Release|Any CPU.Build.0 = Release|Any CPU
+		{96DC69E2-6D43-46E2-83FE-FD3C9BDB1DCB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{96DC69E2-6D43-46E2-83FE-FD3C9BDB1DCB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{96DC69E2-6D43-46E2-83FE-FD3C9BDB1DCB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{96DC69E2-6D43-46E2-83FE-FD3C9BDB1DCB}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
