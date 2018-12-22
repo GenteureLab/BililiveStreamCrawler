@@ -9,4 +9,9 @@
     <PackageReference Include="Newtonsoft.Json" Version="12.0.1" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\BililiveRecorder.FlvProcessor\BililiveRecorder.FlvProcessor.csproj" />
+    <ProjectReference Include="..\BililiveStreamCrawler.Common\BililiveStreamCrawler.Common.csproj" />
+  </ItemGroup>
+
 </Project>
