@@ -12,6 +12,8 @@ namespace BililiveStreamCrawler.Common
 
         public bool Remove(T item) => list.Remove(item);
 
+        public bool Contains(T item) => list.Contains(item);
+
         public void Enqueue(T item) => list.AddLast(item);
 
         public T Dequeue()

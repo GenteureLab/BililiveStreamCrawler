@@ -13,6 +13,10 @@
         /// <summary>
         /// Client 向 Server 发送，任务完成
         /// </summary>
-        Response = 2
+        CompleteSuccess = 2,
+        /// <summary>
+        /// Client 向 Server 发送，任务出错
+        /// </summary>
+        CompleteFailed = 3,
     }
 }

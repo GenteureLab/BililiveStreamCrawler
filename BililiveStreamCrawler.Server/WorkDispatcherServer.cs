@@ -8,6 +8,8 @@ namespace BililiveStreamCrawler.Server
 {
     internal class WorkDispatcherServer : WebSocketsServer
     {
+        private readonly object lockObject = new object();
+
         /// <summary>
         /// 排队等待分析的直播间
         /// </summary>
@@ -23,13 +25,49 @@ namespace BililiveStreamCrawler.Server
         /// </summary>
         private readonly List<CrawlerClient> ConnectedClient = new List<CrawlerClient>();
 
+        public override string ServerName => "Work Dispatcher";
 
         public WorkDispatcherServer() : base(true)
         {
 
         }
 
-        public override string ServerName => "Work Dispatcher";
+        private void ProcessClient(CrawlerClient client)
+        {
+            lock (lockObject)
+            {
+                if (ClientQueue.Contains(client))
+                {
+                    // 已经在排队中
+                    return;
+                }
+                else if (RoomQueue.Count > 0)
+                {
+                    var room = RoomQueue.Dequeue();
+                    // client.SendJob(room);
+                }
+                else
+                {
+                    ClientQueue.Enqueue(client);
+                }
+            }
+        }
+
+        private void ProcessRoom(StreamRoom room)
+        {
+            lock (lockObject)
+            {
+                if (ClientQueue.Count > 0)
+                {
+                    var client = ClientQueue.Dequeue();
+                    // client.SendJob(room);
+                }
+                else
+                {
+                    RoomQueue.Enqueue(room);
+                }
+            }
+        }
 
         protected override void OnClientConnected(IWebSocketContext context, IPEndPoint localEndPoint, IPEndPoint remoteEndPoint)
         {
