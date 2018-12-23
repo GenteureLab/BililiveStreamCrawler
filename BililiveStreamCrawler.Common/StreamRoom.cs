@@ -47,5 +47,10 @@ namespace BililiveStreamCrawler.Common
         /// </summary>
         public DateTime? StartTime { get; set; }
 
+        /// <summary>
+        /// 此任务生成时间（Object 创建时间）
+        /// </summary>
+        public DateTime FetchTime { get; } = DateTime.Now;
+
     }
 }

@@ -4,22 +4,24 @@ namespace BililiveStreamCrawler.Common
 {
     public class LinkedListQueue<T>
     {
-        private LinkedList<T> list = new LinkedList<T>();
+        public LinkedList<T> Rawlist { get; } = new LinkedList<T>();
 
-        public int Count => list.Count;
+        public int Count => Rawlist.Count;
 
-        public T Peek() => list.First.Value;
+        public T Peek() => Rawlist.First.Value;
 
-        public bool Remove(T item) => list.Remove(item);
+        public bool Remove(T item) => Rawlist.Remove(item);
 
-        public bool Contains(T item) => list.Contains(item);
+        public bool Contains(T item) => Rawlist.Contains(item);
 
-        public void Enqueue(T item) => list.AddLast(item);
+        public void Enqueue(T item) => Rawlist.AddLast(item);
+
+        public void AddFirst(T item) => Rawlist.AddFirst(item);
 
         public T Dequeue()
         {
-            var result = list.First.Value;
-            list.RemoveFirst();
+            var result = Rawlist.First.Value;
+            Rawlist.RemoveFirst();
             return result;
         }
     }
