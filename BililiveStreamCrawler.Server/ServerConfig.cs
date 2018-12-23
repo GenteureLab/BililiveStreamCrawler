@@ -10,7 +10,23 @@ namespace BililiveStreamCrawler.Server
 
         // Mysql connection string
 
-        // Telegram bot token, channel id, proxy address
+        [JsonProperty("telegram")]
+        public TelegramConfig Telegram { get; set; }
 
+        [JsonObject(MemberSerialization.OptIn)]
+        internal class TelegramConfig
+        {
+            [JsonProperty("token")]
+            public string Token { get; set; }
+
+            [JsonProperty("id")]
+            public long TargetId { get; set; }
+
+            [JsonProperty("host")]
+            public string ProxyHostname { get; set; }
+
+            [JsonProperty("port")]
+            public int ProxyPort { get; set; }
+        }
     }
 }
