@@ -1,6 +1,8 @@
 ﻿using BililiveStreamCrawler.Common;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Net.Security;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
@@ -14,13 +16,13 @@ namespace BililiveStreamCrawler.Client
     {
         private static readonly List<StreamRoom> StreamRooms = new List<StreamRoom>();
 
-        private static readonly int MaxParallelTask = 3;
+        private static ClientConfig Config;
 
         private static WebSocket WebSocket;
 
         private static void Main(string[] args)
         {
-            // TODO: parse config file
+            Config = JsonConvert.DeserializeObject<ClientConfig>(File.ReadAllText("config.json"));
 
             WebSocket = new WebSocket("wss://echo.websocket.org");
 
@@ -65,7 +67,7 @@ namespace BililiveStreamCrawler.Client
 
         }
 
-        private static void Ws_OnError(object sender, ErrorEventArgs e)
+        private static void Ws_OnError(object sender, WebSocketSharp.ErrorEventArgs e)
         {
 
         }
@@ -103,7 +105,7 @@ namespace BililiveStreamCrawler.Client
 
         private static void TryRequestNewTask()
         {
-            if (StreamRooms.Count < MaxParallelTask)
+            if (StreamRooms.Count < Config.MaxParallelTask)
             {
                 RequestNewTask();
             }

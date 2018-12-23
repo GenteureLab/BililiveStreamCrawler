@@ -1,4 +1,6 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
+using System.IO;
 using System.Threading;
 using Unosquare.Labs.EmbedIO;
 using Unosquare.Labs.EmbedIO.Modules;
@@ -7,9 +9,12 @@ namespace BililiveStreamCrawler.Server
 {
     internal class SeverMain
     {
+
+        private static ServerConfig Config;
+
         private static void Main(string[] args)
         {
-            Console.WriteLine("Hello World!");
+            Config = JsonConvert.DeserializeObject<ServerConfig>(File.ReadAllText("config.json"));
 
             using (var server = new WebServer("http://127.0.0.1:9696/"))
             {
