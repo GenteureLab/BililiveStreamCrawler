@@ -6,9 +6,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Dapper" Version="1.50.5" />
     <PackageReference Include="EmbedIO" Version="2.1.1" />
     <PackageReference Include="FluentScheduler" Version="5.3.0" />
+    <PackageReference Include="HttpToSocks5Proxy" Version="1.1.0" />
+    <PackageReference Include="MySqlConnector" Version="0.48.2" />
     <PackageReference Include="Newtonsoft.Json" Version="12.0.1" />
+    <PackageReference Include="Telegram.Bot" Version="14.10.0" />
   </ItemGroup>
 
   <ItemGroup>
