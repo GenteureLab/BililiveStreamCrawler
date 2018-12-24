@@ -6,7 +6,6 @@ using System.IO;
 using System.Net.Security;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
-using System.Threading;
 using System.Threading.Tasks;
 using WebSocketSharp;
 
@@ -31,31 +30,33 @@ namespace BililiveStreamCrawler.Client
 
             Console.WriteLine("Connecting: " + ub.Uri.AbsoluteUri);
             WebSocket = new WebSocket(ub.Uri.AbsoluteUri);
-
-            WebSocket.SslConfiguration.CheckCertificateRevocation = false;
-            WebSocket.SslConfiguration.EnabledSslProtocols = SslProtocols.Tls12 | SslProtocols.Tls11 | SslProtocols.Tls;
-            WebSocket.SslConfiguration.ServerCertificateValidationCallback =
-                (object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors) =>
-                {
-                    if (certificate is X509Certificate2 cert)
+            if (WebSocket.IsSecure)
+            {
+                WebSocket.SslConfiguration.CheckCertificateRevocation = false;
+                WebSocket.SslConfiguration.EnabledSslProtocols = SslProtocols.Tls12 | SslProtocols.Tls11 | SslProtocols.Tls;
+                WebSocket.SslConfiguration.ServerCertificateValidationCallback =
+                    (object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors) =>
                     {
-                        if (cert.Thumbprint == Config.Thumbprint)
+                        if (certificate is X509Certificate2 cert)
                         {
-                            return true;
+                            if (cert.Thumbprint == Config.Thumbprint)
+                            {
+                                return true;
+                            }
+                            else
+                            {
+                                Console.WriteLine("Server certificate thumbprint doesn't match!");
+                                Console.WriteLine("Expected: " + Config.Thumbprint);
+                                Console.WriteLine("Received: " + cert.Thumbprint);
+                                return false;
+                            }
                         }
                         else
                         {
-                            Console.WriteLine("Server certificate thumbprint doesn't match!");
-                            Console.WriteLine("Expected: " + Config.Thumbprint);
-                            Console.WriteLine("Received: " + cert.Thumbprint);
                             return false;
                         }
-                    }
-                    else
-                    {
-                        return false;
-                    }
-                };
+                    };
+            }
 
             WebSocket.OnOpen += Ws_OnOpen;
             WebSocket.OnMessage += Ws_OnMessage;
@@ -64,32 +65,35 @@ namespace BililiveStreamCrawler.Client
 
             WebSocket.Connect();
 
+            Console.CancelKeyPress += (sender, e) => { WebSocket.Close(); Environment.Exit(0); };
 
-            while (WebSocket.IsAlive)
+            while (true)
             {
-                Thread.Sleep(500);
+                Console.ReadKey(true);
             }
-
-            try
-            {
-                WebSocket.Close();
-            }
-            catch (Exception) { }
         }
 
         private static void Ws_OnClose(object sender, CloseEventArgs e)
         {
-
+            Environment.Exit(1);
         }
 
         private static void Ws_OnError(object sender, WebSocketSharp.ErrorEventArgs e)
         {
-
+            Environment.Exit(2);
         }
 
         private static void Ws_OnMessage(object sender, MessageEventArgs e)
         {
-            StreamRoom streamRoom = null; // TODO: parse data from websocket
+            if (!e.IsText)
+            {
+                return;
+            }
+
+            var command = JsonConvert.DeserializeObject<Command>(e.Data);
+            if (command.Type != CommandType.Issue) { return; }
+
+            StreamRoom streamRoom = command.Room;
 
             StreamRooms.Add(streamRoom);
             Task.Run(() => StreamParser.Parse(streamRoom))

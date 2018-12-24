@@ -90,7 +90,6 @@ namespace BililiveStreamCrawler.Client
                     // Processor.CuttingNumber = _config.CuttingNumber;
 
                     _stream = await _response.Content.ReadAsStreamAsync();
-                    _stream.ReadTimeout = 3 * 1000;
 
                     await _ReadStreamLoop();
 

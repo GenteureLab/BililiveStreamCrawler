@@ -45,12 +45,24 @@ namespace BililiveStreamCrawler.Server
         /// </summary>
         private static readonly List<CrawlerClient> ConnectedClient = new List<CrawlerClient>();
 
+        private static readonly EventWaitHandle waitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
+
         private static void Main(string[] args)
         {
             Config = JsonConvert.DeserializeObject<ServerConfig>(File.ReadAllText("config.json"));
 
             SetupTelegram();
             SetupScheduler();
+
+            ProcessRoom(new StreamRoom
+            {
+                Roomid = 1017,
+                ShortId = 0,
+                StreamId = 0,
+                Title = "测试",
+                Uid = 0,
+                UserName = "测试用户名"
+            });
 
             using (var server = new WebServer(Config.Url))
             {
@@ -62,11 +74,13 @@ namespace BililiveStreamCrawler.Server
                 var cts = new CancellationTokenSource();
                 var task = server.RunAsync(cts.Token);
 
-                Console.CancelKeyPress += (sender, e) => cts.Cancel();
-                while (!cts.IsCancellationRequested) { }
+                Console.CancelKeyPress += (sender, e) => { Environment.Exit(-1); };
+
+                while (true)
+                {
+                    Console.ReadKey(true);
+                }
             }
-            Console.WriteLine("Exiting!");
-            Environment.Exit(0);
         }
 
         /// <summary>
@@ -99,7 +113,7 @@ namespace BililiveStreamCrawler.Server
                 else if (RoomQueue.Count > 0)
                 {
                     var room = RoomQueue.Dequeue();
-                    // client.SendJob(room);
+                    SendTask(client, room);
                 }
                 else
                 {
@@ -119,7 +133,7 @@ namespace BililiveStreamCrawler.Server
                 if (ClientQueue.Count > 0)
                 {
                     var client = ClientQueue.Dequeue();
-                    // client.SendJob(room);
+                    SendTask(client, room);
                 }
                 else
                 {
@@ -189,10 +203,12 @@ namespace BililiveStreamCrawler.Server
                         switch (command.Type)
                         {
                             case CommandType.Request:
+                                Console.WriteLine("收到 Request: " + client.Name);
                                 ProcessClient(client);
                                 break;
                             case CommandType.CompleteSuccess:
                                 {
+                                    Console.WriteLine("收到 CompleteSuccess: " + client.Name);
                                     // TODO: Telegram
                                     var room = client.CurrentJobs.FirstOrDefault(x => x.Roomid == command.Room?.Roomid);
                                     if (room != null)
@@ -204,6 +220,7 @@ namespace BililiveStreamCrawler.Server
                                 break;
                             case CommandType.CompleteFailed:
                                 {
+                                    Console.WriteLine("收到 CompleteFailed: " + client.Name);
                                     // TODO: Telegram
                                     var room = client.CurrentJobs.FirstOrDefault(x => x.Roomid == command.Room?.Roomid);
                                     if (room != null)
@@ -322,7 +339,7 @@ namespace BililiveStreamCrawler.Server
             if (ClientQueue.Count > 0)
             {
                 var client = ClientQueue.Dequeue();
-                // client.SendJob(room);
+                SendTask(client, room);
             }
             else
             {
