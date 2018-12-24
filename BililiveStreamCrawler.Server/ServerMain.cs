@@ -1,6 +1,8 @@
 ﻿using BililiveStreamCrawler.Common;
+using Dapper;
 using FluentScheduler;
 using MihaZupan;
+using MySql.Data.MySqlClient;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -191,16 +193,18 @@ namespace BililiveStreamCrawler.Server
                                 break;
                             case CommandType.CompleteSuccess:
                                 {
+                                    // TODO: Telegram
                                     var room = client.CurrentJobs.FirstOrDefault(x => x.Roomid == command.Room?.Roomid);
                                     if (room != null)
                                     {
                                         client.CurrentJobs.Remove(room);
-                                        // TODO 写数据库
+                                        WriteResult(client.Name, room, command.Metadata);
                                     }
                                 }
                                 break;
                             case CommandType.CompleteFailed:
                                 {
+                                    // TODO: Telegram
                                     var room = client.CurrentJobs.FirstOrDefault(x => x.Roomid == command.Room?.Roomid);
                                     if (room != null)
                                     {
@@ -225,6 +229,76 @@ namespace BililiveStreamCrawler.Server
                     webSocketContext.WebSocket.CloseAsync();
                 }
             }
+        }
+
+        private static void WriteResult(string name, StreamRoom room, StreamMetadata metadata)
+        {
+            Exception exception = null;
+            try
+            {
+                var roominfo = JsonConvert.SerializeObject(room);
+                var onmetadata = JsonConvert.SerializeObject(metadata.FlvMetadata);
+                using (var connection = new MySqlConnection(Config.MySql))
+                {
+                    int result = connection.Execute("INSERT INTO data(`roomid`,`clientname`,`roominfo`," +
+                           "`flvhost`,`height`,`width`,`fps`,`encoder`,`video_datarate`,`audio_datarate`," +
+                           "`profile`,`level`,`size`,`onmetadata`,`avc_dcr`) VALUES " +
+                           "(@Roomid,@name,@roominfo,@FlvHost,@Height,@Width,@Fps,@Encoder," +
+                           "@VideoDatarate,@AudioDatarate,@Profile,@Level,@TotalSize,@onmetadata,@AVCDecoderConfigurationRecord)",
+                           new
+                           {
+                               room.Roomid,
+                               name,
+                               roominfo,
+                               metadata.FlvHost,
+                               metadata.Height,
+                               metadata.Width,
+                               metadata.Fps,
+                               metadata.Encoder,
+                               metadata.VideoDatarate,
+                               metadata.AudioDatarate,
+                               metadata.Profile,
+                               metadata.Level,
+                               metadata.TotalSize,
+                               onmetadata,
+                               metadata.AVCDecoderConfigurationRecord
+                           });
+                }
+            }
+            catch (Exception ex)
+            {
+                exception = ex;
+            }
+
+            var sb = new StringBuilder();
+            sb.Append(name)
+                .Append(" 提交的数据\n")
+                .Append("房间号: ")
+                .Append(room.Roomid)
+                .Append("\n宽: ")
+                .Append(metadata.Width)
+                .Append(" 高: ")
+                .Append(metadata.Height)
+                .Append("\nFPS: ")
+                .Append(metadata.Fps)
+                .Append("\n视频码率: ")
+                .Append(metadata.VideoDatarate)
+                .Append(" 音频码率: ")
+                .Append(metadata.AudioDatarate)
+                .Append("\nProfile: ")
+                .Append(metadata.Profile)
+                .Append(" Level: ")
+                .Append(metadata.Level)
+                .Append("\n")
+                .Append(metadata.Encoder);
+
+            if (exception != null)
+            {
+                sb.Append("\n\n写数据库错误\n")
+                    .Append(exception.ToString());
+            }
+
+            SendTelegramMessage(sb.ToString());
         }
 
         /// <summary>
@@ -274,7 +348,13 @@ namespace BililiveStreamCrawler.Server
                     }
                 }
                 temp.ForEach(x => RoomQueue.Rawlist.Remove(x));
-                SendTelegramMessage("移除了旧任务"); // TODO 
+
+                var sb = new StringBuilder();
+
+
+                SendTelegramMessage("移除了旧任务"); // TODO telegram
+
+
             }
         }
 

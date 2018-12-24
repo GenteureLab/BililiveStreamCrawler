@@ -8,7 +8,8 @@ namespace BililiveStreamCrawler.Server
         [JsonProperty("url")]
         public string Url { get; set; }
 
-        // Mysql connection string
+        [JsonProperty("mysql")]
+        public string MySql { get; set; }
 
         [JsonProperty("telegram")]
         public TelegramConfig Telegram { get; set; }
