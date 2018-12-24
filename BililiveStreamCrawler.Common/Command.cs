@@ -23,5 +23,10 @@ namespace BililiveStreamCrawler.Common
         [JsonProperty("metadata")]
         public StreamMetadata Metadata { get; set; }
 
+        /// <summary>
+        /// 任务出错时的错误信息
+        /// </summary>
+        [JsonProperty("error")]
+        public string Error { get; set; }
     }
 }

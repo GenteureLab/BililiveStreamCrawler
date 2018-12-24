@@ -73,7 +73,7 @@ namespace BililiveStreamCrawler.Common
         public Dictionary<string, object> FlvMetadata { get; set; }
 
         /// <summary>
-        /// AVCDecoderConfigurationRecord
+        /// 含有 AVCDecoderConfigurationRecord 的 FLV VIDEODATA （PDF 第9页）
         /// </summary>
         [JsonProperty("avc_dcr")]
         public byte[] AVCDecoderConfigurationRecord { get; set; }

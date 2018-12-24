@@ -14,6 +14,8 @@ namespace BililiveStreamCrawler.Client
 {
     internal class ClientMain
     {
+        private static readonly string requestPayload = JsonConvert.SerializeObject(new Command { Type = CommandType.Request });
+
         private static readonly List<StreamRoom> StreamRooms = new List<StreamRoom>();
 
         private static ClientConfig Config;
@@ -24,7 +26,11 @@ namespace BililiveStreamCrawler.Client
         {
             Config = JsonConvert.DeserializeObject<ClientConfig>(File.ReadAllText("config.json"));
 
-            WebSocket = new WebSocket("wss://echo.websocket.org");
+            var ub = new UriBuilder(Config.Url);
+            ub.Query = "name=" + Uri.EscapeDataString(Config.Name);
+
+            Console.WriteLine("Connecting: " + ub.Uri.AbsoluteUri);
+            WebSocket = new WebSocket(ub.Uri.AbsoluteUri);
 
             WebSocket.SslConfiguration.CheckCertificateRevocation = false;
             WebSocket.SslConfiguration.EnabledSslProtocols = SslProtocols.Tls12 | SslProtocols.Tls11 | SslProtocols.Tls;
@@ -33,8 +39,17 @@ namespace BililiveStreamCrawler.Client
                 {
                     if (certificate is X509Certificate2 cert)
                     {
-                        Console.WriteLine("Server certificate thumbprint: " + cert.Thumbprint);
-                        return true;
+                        if (cert.Thumbprint == Config.Thumbprint)
+                        {
+                            return true;
+                        }
+                        else
+                        {
+                            Console.WriteLine("Server certificate thumbprint doesn't match!");
+                            Console.WriteLine("Expected: " + Config.Thumbprint);
+                            Console.WriteLine("Received: " + cert.Thumbprint);
+                            return false;
+                        }
                     }
                     else
                     {
@@ -84,14 +99,12 @@ namespace BililiveStreamCrawler.Client
                     if (!task.IsFaulted)
                     {
                         StreamMetadata data = task.Result;
-                        // ws.Send(data);
-                        // TODO: report success
+                        WebSocket.Send(JsonConvert.SerializeObject(new Command { Type = CommandType.CompleteSuccess, Room = streamRoom, Metadata = data }));
                     }
                     else
                     {
                         string error = task.Exception.ToString();
-                        // ws.Send(error);
-                        // TODO: report error
+                        WebSocket.Send(JsonConvert.SerializeObject(new Command { Type = CommandType.CompleteFailed, Room = streamRoom, Error = error }));
                     }
                     TryRequestNewTask();
                 });
@@ -113,7 +126,7 @@ namespace BililiveStreamCrawler.Client
 
         private static void RequestNewTask()
         {
-            // TODO
+            WebSocket.Send(requestPayload);
         }
     }
 }

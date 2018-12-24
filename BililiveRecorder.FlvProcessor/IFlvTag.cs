@@ -9,6 +9,8 @@ namespace BililiveRecorder.FlvProcessor
         int TimeStamp { get; }
         byte[] StreamId { get; set; }
         bool IsVideoKeyframe { get; }
+        int Profile { get; }
+        int Level { get; }
         byte[] Data { get; set; }
 
         void SetTimeStamp(int timestamp);
