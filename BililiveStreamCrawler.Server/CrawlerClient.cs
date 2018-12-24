@@ -8,6 +8,8 @@ namespace BililiveStreamCrawler.Server
     {
         public string Name { get; set; }
 
+        public int MaxParallelTask { get; set; }
+
         public IWebSocketContext WebSocketContext { get; set; }
 
         public List<StreamRoom> CurrentJobs { get; } = new List<StreamRoom>();

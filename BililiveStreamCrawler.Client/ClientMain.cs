@@ -29,7 +29,7 @@ namespace BililiveStreamCrawler.Client
 
             var ub = new UriBuilder(Config.Url)
             {
-                Query = "name=" + Uri.EscapeDataString(Config.Name)
+                Query = "name=" + Uri.EscapeDataString(Config.Name) + "&max=" + Config.MaxParallelTask
             };
 
             Console.WriteLine("Connecting: " + ub.Uri.AbsoluteUri);

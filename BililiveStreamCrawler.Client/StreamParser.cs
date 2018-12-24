@@ -132,7 +132,7 @@ namespace BililiveStreamCrawler.Client
                         streamMetadata.VideoDatarate = metadata.ContainsKey("videodatarate") ? ((metadata["videodatarate"] is int vdr) ? vdr : int.Parse(metadata["videodatarate"].ToString())) : -1;
                         streamMetadata.AudioDatarate = metadata.ContainsKey("audiodatarate") ? ((metadata["audiodatarate"] is int adr) ? adr : int.Parse(metadata["audiodatarate"].ToString())) : -1;
 
-                        streamMetadata.Encoder = metadata["encoder"].ToString();
+                        streamMetadata.Encoder = metadata.ContainsKey("encoder") ? metadata["encoder"].ToString() : "";
 
                         streamMetadata.FlvMetadata = metadata;
                     }

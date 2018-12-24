@@ -107,6 +107,11 @@ namespace BililiveStreamCrawler.Server
                     // 已经在排队中
                     return;
                 }
+                else if (client.CurrentJobs.Count >= client.MaxParallelTask)
+                {
+                    // 眼大肚子小（
+                    return;
+                }
                 else if (RoomQueue.Count > 0)
                 {
                     var room = RoomQueue.Dequeue();
@@ -127,15 +132,17 @@ namespace BililiveStreamCrawler.Server
         {
             lock (lockObject)
             {
-                if (ClientQueue.Count > 0)
+                while (ClientQueue.Count > 0)
                 {
                     var client = ClientQueue.Dequeue();
-                    SendTask(client, room);
+                    if (client.MaxParallelTask >= client.CurrentJobs.Count)
+                    {
+                        SendTask(client, room);
+                        return;
+                    }
                 }
-                else
-                {
-                    RoomQueue.Enqueue(room);
-                }
+
+                RoomQueue.Enqueue(room);
             }
         }
 
@@ -145,18 +152,29 @@ namespace BililiveStreamCrawler.Server
         /// <param name="webSocket"></param>
         public static void NewClient(IWebSocketContext webSocket)
         {
+            var query = webSocket.RequestUri.Query
+                .TrimStart('?').Split('&')
+                .Select(x => x.Split('='))
+                .Where(x => x.Length == 2)
+                .ToDictionary(x => Uri.UnescapeDataString(x[0]), x => Uri.UnescapeDataString(x[1]));
+            if (!(query.ContainsKey("name") && query.ContainsKey("max")))
+            {
+                webSocket.WebSocket.CloseAsync();
+                return;
+            }
+            string name = query["name"];
+            if ((!int.TryParse(query["max"], out int max)) || name.Length < 5)
+            {
+                webSocket.WebSocket.CloseAsync();
+                return;
+            }
+
+            CrawlerClient newclient = new CrawlerClient { Name = name, MaxParallelTask = max, WebSocketContext = webSocket };
             lock (lockObject)
             {
-                var name = webSocket.RequestUri.Query
-                    .TrimStart('?').Split('&')
-                    .Select(x => x.Split('='))
-                    .Where(x => x.Length == 2)
-                    .ToDictionary(x => Uri.UnescapeDataString(x[0]), x => Uri.UnescapeDataString(x[1]))
-                    ["name"];
-                CrawlerClient newclient = new CrawlerClient { Name = name, WebSocketContext = webSocket };
                 ConnectedClient.Add(newclient);
-                SendTelegramMessage($"{newclient.Name} 已上线 #connect");
             }
+            SendTelegramMessage($"{newclient.Name} 已上线 #connect");
         }
 
         /// <summary>
@@ -346,19 +364,22 @@ namespace BililiveStreamCrawler.Server
         /// <param name="room"></param>
         private static void RetryRoom(StreamRoom room)
         {
-            if (++room.RetryTime >= 2)
+            if (++room.RetryTime >= 3)
             {
                 return;
             }
-            if (ClientQueue.Count > 0)
+
+            while (ClientQueue.Count > 0)
             {
                 var client = ClientQueue.Dequeue();
-                SendTask(client, room);
+                if (client.MaxParallelTask >= client.CurrentJobs.Count)
+                {
+                    SendTask(client, room);
+                    return;
+                }
             }
-            else
-            {
-                RoomQueue.AddFirst(room);
-            }
+
+            RoomQueue.Enqueue(room);
         }
 
         /// <summary>
@@ -402,7 +423,7 @@ namespace BililiveStreamCrawler.Server
             lock (lockObject)
             {
                 var now = DateTime.Now;
-                var diff = TimeSpan.FromMinutes(2);
+                var diff = TimeSpan.FromMinutes(1);
 
                 foreach (var client in ConnectedClient)
                 {
