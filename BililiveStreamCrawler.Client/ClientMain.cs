@@ -13,6 +13,8 @@ namespace BililiveStreamCrawler.Client
 {
     internal class ClientMain
     {
+        private static readonly object lockObject = new object();
+
         private static readonly string requestPayload = JsonConvert.SerializeObject(new Command { Type = CommandType.Request });
 
         private static readonly List<StreamRoom> StreamRooms = new List<StreamRoom>();
@@ -124,9 +126,12 @@ namespace BililiveStreamCrawler.Client
 
         private static void TryRequestNewTask()
         {
-            if (StreamRooms.Count < Config.MaxParallelTask)
+            lock (lockObject)
             {
-                RequestNewTask();
+                if (StreamRooms.Count < Config.MaxParallelTask)
+                {
+                    RequestNewTask();
+                }
             }
         }
 
