@@ -4,10 +4,12 @@ using FluentScheduler;
 using MihaZupan;
 using MySql.Data.MySqlClient;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Text;
 using System.Threading;
 using Telegram.Bot;
@@ -44,6 +46,11 @@ namespace BililiveStreamCrawler.Server
         /// 连接上了的所有 Client
         /// </summary>
         private static readonly List<CrawlerClient> ConnectedClient = new List<CrawlerClient>();
+
+        /// <summary>
+        /// 刚才已经处理过的直播间
+        /// </summary>
+        private static readonly LinkedList<int> ProcessedRoom = new LinkedList<int>();
 
         private static readonly EventWaitHandle waitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
 
@@ -150,8 +157,15 @@ namespace BililiveStreamCrawler.Server
         {
             lock (lockObject)
             {
-                SendTelegramMessage($"{webSocket.RequestUri.Query} 连接到了服务器\n#connect");
-                ConnectedClient.Add(new CrawlerClient { Name = webSocket.RequestUri.Query, WebSocketContext = webSocket });
+                var name = webSocket.RequestUri.Query
+                    .TrimStart('?').Split('&')
+                    .Select(x => x.Split('='))
+                    .Where(x => x.Length == 2)
+                    .ToDictionary(x => Uri.UnescapeDataString(x[0]), x => Uri.UnescapeDataString(x[1]))
+                    ["name"];
+                CrawlerClient newclient = new CrawlerClient { Name = name, WebSocketContext = webSocket };
+                ConnectedClient.Add(newclient);
+                SendTelegramMessage($"Client {newclient.Name} 已上线 #connect");
             }
         }
 
@@ -168,13 +182,12 @@ namespace BililiveStreamCrawler.Server
                 {
                     var sb = new StringBuilder();
                     sb.Append(client.Name);
-                    sb.AppendLine(" 从服务器断开");
+                    sb.AppendLine(" 已离线 #disconnect");
                     if (client.CurrentJobs.Count != 0)
                     {
-                        sb.AppendLine("重新分配以下任务");
+                        sb.AppendLine("正在重新分配以下任务");
                         client.CurrentJobs.ForEach(x => sb.AppendLine(x.Roomid.ToString()));
                     }
-                    sb.Append("#disconnect");
                     SendTelegramMessage(sb.ToString());
 
                     ClientQueue.Remove(client);
@@ -209,24 +222,31 @@ namespace BililiveStreamCrawler.Server
                             case CommandType.CompleteSuccess:
                                 {
                                     Console.WriteLine("收到 CompleteSuccess: " + client.Name);
-                                    // TODO: Telegram
                                     var room = client.CurrentJobs.FirstOrDefault(x => x.Roomid == command.Room?.Roomid);
                                     if (room != null)
                                     {
                                         client.CurrentJobs.Remove(room);
                                         WriteResult(client.Name, room, command.Metadata);
                                     }
+                                    else
+                                    {
+                                        SendTelegramMessage(client.Name + " 尝试提交" + command.Room?.Roomid + "直播间的数据\n但服务器并不认可 #rejected");
+                                    }
                                 }
                                 break;
                             case CommandType.CompleteFailed:
                                 {
                                     Console.WriteLine("收到 CompleteFailed: " + client.Name);
-                                    // TODO: Telegram
                                     var room = client.CurrentJobs.FirstOrDefault(x => x.Roomid == command.Room?.Roomid);
                                     if (room != null)
                                     {
                                         client.CurrentJobs.Remove(room);
                                         RetryRoom(room);
+                                        SendTelegramMessage(client.Name + " 处理 " + room.Roomid + " 时出错，将重新分配任务 #failed\n\n" + command.Error);
+                                    }
+                                    else
+                                    {
+                                        SendTelegramMessage(client.Name + " 尝试报告" + command.Room?.Roomid + "直播间处理出错\n但服务器并不认可 #rejected\n\n" + command.Error);
                                     }
                                 }
                                 break;
@@ -289,7 +309,7 @@ namespace BililiveStreamCrawler.Server
 
             var sb = new StringBuilder();
             sb.Append(name)
-                .Append(" 提交的数据\n")
+                .Append(" 提交的数据\n#success\n")
                 .Append("房间号: ")
                 .Append(room.Roomid)
                 .Append("\n宽: ")
@@ -364,14 +384,19 @@ namespace BililiveStreamCrawler.Server
                         temp.Add(room);
                     }
                 }
+
                 temp.ForEach(x => RoomQueue.Rawlist.Remove(x));
 
-                var sb = new StringBuilder();
+                if (temp.Count > 0)
+                {
+                    var sb = new StringBuilder();
 
+                    sb.Append("#remove 处理速度跟不上直播间开播速度\n以下直播间已从任务列表移除\n移除数量 ").Append(temp.Count).Append(" 个\n\n");
 
-                SendTelegramMessage("移除了旧任务"); // TODO telegram
+                    temp.ForEach(x => sb.Append(x).Append(" "));
 
-
+                    SendTelegramMessage(sb.ToString());
+                }
             }
         }
 
@@ -402,7 +427,34 @@ namespace BililiveStreamCrawler.Server
         /// </summary>
         private static void FetchNewRoom()
         {
+            var c = new WebClient();
+            c.Headers.Add(HttpRequestHeader.Accept, "application/json, text/plain, */*");
+            c.Headers.Add(HttpRequestHeader.Referer, "https://live.bilibili.com/all");
+            c.Headers.Add("Origin", "https://live.bilibili.com");
+            c.Headers.Add(HttpRequestHeader.UserAgent, "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/71.0.3578.98 Safari/537.36");
 
+            string rawdata = c.DownloadString("https://api.live.bilibili.com/room/v1/Area/getListByAreaID?areaId=0&sort=livetime&pageSize=150&page=2");
+            JObject j = JObject.Parse(rawdata);
+            JArray rawlist = j["data"] as JArray;
+
+            foreach (JToken rawroom in rawlist)
+            {
+                try
+                {
+                    int roomid = rawroom["roomid"].ToObject<int>();
+                    if (!ProcessedRoom.Contains(roomid))
+                    {
+                        ProcessedRoom.AddLast(roomid);
+                        ProcessRoom(rawroom.ToObject<StreamRoom>());
+                    }
+                }
+                catch (Exception) { }
+            }
+
+            while (ProcessedRoom.Count > 150)
+            {
+                ProcessedRoom.RemoveFirst();
+            }
         }
 
         /// <summary>

@@ -43,6 +43,30 @@ namespace BililiveStreamCrawler.Common
         public int ShortId { get; set; }
 
         /// <summary>
+        /// 子分区 id
+        /// </summary>
+        [JsonProperty("area_v2_id")]
+        public int AreaV2Id { get; set; }
+
+        /// <summary>
+        /// 子分区名
+        /// </summary>
+        [JsonProperty("area_v2_name")]
+        public string AreaV2Name { get; set; }
+
+        /// <summary>
+        /// 父分区 id
+        /// </summary>
+        [JsonProperty("area_v2_parent_id")]
+        public int AreaV2ParentId { get; set; }
+
+        /// <summary>
+        /// 父分区名
+        /// </summary>
+        [JsonProperty("area_v2_parent_name")]
+        public string AreaV2ParentName { get; set; }
+
+        /// <summary>
         /// 任务开始执行的时间
         /// </summary>
         public DateTime? StartTime { get; set; }
