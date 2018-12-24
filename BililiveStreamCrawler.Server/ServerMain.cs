@@ -466,7 +466,7 @@ namespace BililiveStreamCrawler.Server
                 catch (Exception) { }
             }
 
-            while (ProcessedRoom.Count > 150)
+            while (ProcessedRoom.Count > 400)
             {
                 ProcessedRoom.RemoveFirst();
             }
