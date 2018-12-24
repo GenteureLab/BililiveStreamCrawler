@@ -61,16 +61,6 @@ namespace BililiveStreamCrawler.Server
             SetupTelegram();
             SetupScheduler();
 
-            ProcessRoom(new StreamRoom
-            {
-                Roomid = 1017,
-                ShortId = 0,
-                StreamId = 0,
-                Title = "测试",
-                Uid = 0,
-                UserName = "测试用户名"
-            });
-
             using (var server = new WebServer(Config.Url))
             {
                 server.RegisterModule(new WebSocketsModule());
