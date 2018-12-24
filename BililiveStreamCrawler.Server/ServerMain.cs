@@ -155,7 +155,7 @@ namespace BililiveStreamCrawler.Server
                     ["name"];
                 CrawlerClient newclient = new CrawlerClient { Name = name, WebSocketContext = webSocket };
                 ConnectedClient.Add(newclient);
-                SendTelegramMessage($"Client {newclient.Name} 已上线 #connect");
+                SendTelegramMessage($"{newclient.Name} 已上线 #connect");
             }
         }
 
@@ -175,7 +175,7 @@ namespace BililiveStreamCrawler.Server
                     sb.AppendLine(" 已离线 #disconnect");
                     if (client.CurrentJobs.Count != 0)
                     {
-                        sb.AppendLine("正在重新分配以下任务");
+                        sb.AppendLine("正在重新分配它的任务");
                         client.CurrentJobs.ForEach(x => sb.AppendLine(x.Roomid.ToString()));
                     }
                     SendTelegramMessage(sb.ToString());
@@ -346,6 +346,10 @@ namespace BililiveStreamCrawler.Server
         /// <param name="room"></param>
         private static void RetryRoom(StreamRoom room)
         {
+            if (++room.RetryTime >= 2)
+            {
+                return;
+            }
             if (ClientQueue.Count > 0)
             {
                 var client = ClientQueue.Dequeue();
@@ -383,7 +387,7 @@ namespace BililiveStreamCrawler.Server
 
                     sb.Append("#remove 处理速度跟不上直播间开播速度\n以下直播间已从任务列表移除\n移除数量 ").Append(temp.Count).Append(" 个\n\n");
 
-                    temp.ForEach(x => sb.Append(x).Append(" "));
+                    temp.ForEach(x => sb.Append(x.Roomid).Append(" "));
 
                     SendTelegramMessage(sb.ToString());
                 }

@@ -94,37 +94,44 @@ namespace BililiveStreamCrawler.Client
                     await _ReadStreamLoop();
 
                     {
-                        var metadata = Processor.Metadata.Meta.ToDictionary(
+                        var metadata = Processor.Metadata.Meta.Where(x => x.Key.Replace("\0", "").Length != 0).ToDictionary(
                                 x => x.Key.Replace("\0", ""),
                                 x => (x.Value is string str) ? str.Replace("\0", "") : x.Value
                             );
 
-                        streamMetadata.Width = (metadata["width"] != null)
+                        streamMetadata.Width = metadata.ContainsKey("width")
                             ? ((metadata["width"] is int w)
                                 ? w
                                 : int.Parse(metadata["width"].ToString()))
-                            : ((metadata["displayWidth"] is int dw)
-                                ? dw
-                                : int.Parse(metadata["displayWidth"].ToString()));
+                            : (metadata.ContainsKey("displayWidth")
+                                ? ((metadata["displayWidth"] is int dw)
+                                    ? dw
+                                    : int.Parse(metadata["displayWidth"].ToString()))
+                                : -1);
 
-                        streamMetadata.Height = (metadata["height"] != null)
-                        ? ((metadata["height"] is int h)
-                            ? h
-                            : int.Parse(metadata["height"].ToString()))
-                        : ((metadata["displayHeight"] is int dh)
-                            ? dh
-                            : int.Parse(metadata["displayHeight"].ToString()));
+                        streamMetadata.Height = metadata.ContainsKey("height")
+                            ? ((metadata["height"] is int h)
+                                ? h
+                                : int.Parse(metadata["height"].ToString()))
+                            : (metadata.ContainsKey("displayHeight")
+                                ? ((metadata["displayHeight"] is int dh)
+                                    ? dh
+                                    : int.Parse(metadata["displayHeight"].ToString()))
+                                : -1);
 
-                        streamMetadata.Fps = (metadata["framerate"] != null)
-                        ? ((metadata["framerate"] is int f)
-                            ? f
-                            : int.Parse(metadata["framerate"].ToString()))
-                        : ((metadata["fps"] is int df)
-                            ? df
-                            : int.Parse(metadata["fps"].ToString()));
+                        streamMetadata.Fps = metadata.ContainsKey("framerate")
+                            ? ((metadata["framerate"] is int f)
+                                ? f
+                                : int.Parse(metadata["framerate"].ToString()))
+                            : (metadata.ContainsKey("fps")
+                                ? ((metadata["fps"] is int df)
+                                    ? df
+                                    : int.Parse(metadata["fps"].ToString()))
+                                : -1);
 
-                        streamMetadata.VideoDatarate = (metadata["videodatarate"] is int vdr) ? vdr : int.Parse(metadata["videodatarate"].ToString());
-                        streamMetadata.AudioDatarate = (metadata["audiodatarate"] is int adr) ? adr : int.Parse(metadata["audiodatarate"].ToString());
+                        streamMetadata.VideoDatarate = metadata.ContainsKey("videodatarate") ? ((metadata["videodatarate"] is int vdr) ? vdr : int.Parse(metadata["videodatarate"].ToString())) : -1;
+                        streamMetadata.AudioDatarate = metadata.ContainsKey("audiodatarate") ? ((metadata["audiodatarate"] is int adr) ? adr : int.Parse(metadata["audiodatarate"].ToString())) : -1;
+
                         streamMetadata.Encoder = metadata["encoder"].ToString();
 
                         streamMetadata.FlvMetadata = metadata;

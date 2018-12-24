@@ -76,5 +76,10 @@ namespace BililiveStreamCrawler.Common
         /// </summary>
         public DateTime FetchTime { get; } = DateTime.Now;
 
+        /// <summary>
+        /// 重试次数
+        /// </summary>
+        public int RetryTime { get; set; } = 0;
+
     }
 }
