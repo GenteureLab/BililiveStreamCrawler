@@ -1,5 +1,4 @@
-﻿using NLog;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 
@@ -7,8 +6,6 @@ namespace BililiveRecorder.FlvProcessor
 {
     public class FlvClipProcessor : IFlvClipProcessor
     {
-        private static readonly Logger logger = LogManager.GetCurrentClassLogger();
-
         public IFlvMetadata Header { get; private set; }
         public List<IFlvTag> HTags { get; private set; }
         public List<IFlvTag> Tags { get; private set; }
@@ -26,8 +23,6 @@ namespace BililiveRecorder.FlvProcessor
             HTags = head;
             Tags = data;
             target = Tags[Tags.Count - 1].TimeStamp + (int)(seconds * FlvStreamProcessor.SEC_TO_MS);
-            logger.Debug("Clip 创建 Tags.Count={0} Tags[0].TimeStamp={1} Tags[Tags.Count-1].TimeStamp={2} Tags里秒数={3}",
-                Tags.Count, Tags[0].TimeStamp, Tags[Tags.Count - 1].TimeStamp, (Tags[Tags.Count - 1].TimeStamp - Tags[0].TimeStamp) / 1000d);
 
             return this;
         }
@@ -69,17 +64,15 @@ namespace BililiveRecorder.FlvProcessor
                     HTags.ForEach(tag => tag.WriteTo(fs));
                     Tags.ForEach(tag => tag.WriteTo(fs, offset));
 
-                    logger.Info("剪辑已保存：{0}", Path.GetFileName(path));
-
                     fs.Close();
                 }
                 Tags.Clear();
 
 
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                logger.Error(ex, "保存剪辑文件时出错");
+
             }
             ClipFinalized?.Invoke(this, new ClipFinalizedArgs() { ClipProcessor = this });
         }

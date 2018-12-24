@@ -25,8 +25,10 @@ namespace BililiveStreamCrawler.Client
         {
             Config = JsonConvert.DeserializeObject<ClientConfig>(File.ReadAllText("config.json"));
 
-            var ub = new UriBuilder(Config.Url);
-            ub.Query = "name=" + Uri.EscapeDataString(Config.Name);
+            var ub = new UriBuilder(Config.Url)
+            {
+                Query = "name=" + Uri.EscapeDataString(Config.Name)
+            };
 
             Console.WriteLine("Connecting: " + ub.Uri.AbsoluteUri);
             WebSocket = new WebSocket(ub.Uri.AbsoluteUri);

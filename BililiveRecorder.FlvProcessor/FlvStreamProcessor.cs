@@ -1,5 +1,4 @@
-﻿using NLog;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
@@ -10,8 +9,6 @@ namespace BililiveRecorder.FlvProcessor
     // TODO: 添加测试
     public class FlvStreamProcessor : IFlvStreamProcessor
     {
-        private static readonly Logger logger = LogManager.GetCurrentClassLogger();
-
         internal const uint SEC_TO_MS = 1000; // 1 second = 1000 ms
         internal const int MIN_BUFFER_SIZE = 1024 * 2;
         internal static readonly byte[] FLV_HEADER_BYTES = new byte[]
@@ -95,7 +92,6 @@ namespace BililiveRecorder.FlvProcessor
         private void OpenNewRecordFile()
         {
             string path = GetStreamFileName();
-            logger.Debug("打开新录制文件: " + path);
             try { Directory.CreateDirectory(Path.GetDirectoryName(path)); } catch (Exception) { }
             _targetFile = new FileStream(path, FileMode.CreateNew, FileAccess.ReadWrite);
 
@@ -204,8 +200,6 @@ namespace BililiveRecorder.FlvProcessor
             {
                 if (data[4] != FLV_HEADER_BYTES[4])
                 {
-                    // 七牛 直播云 的高端 FLV 头
-                    logger.Debug("FLV头[4]的值是 {0}", data[4]);
                     data[4] = FLV_HEADER_BYTES[4];
                 }
                 var r = new bool[FLV_HEADER_BYTES.Length];
@@ -294,7 +288,6 @@ namespace BililiveRecorder.FlvProcessor
                     _tagVideoCount++;
                     if (_tagVideoCount < 2)
                     {
-                        logger.Trace("第一个 Video Tag 时间戳 {0} ms", tag.TimeStamp);
                         _headerTags.Add(tag);
                     }
                     else
@@ -302,7 +295,6 @@ namespace BililiveRecorder.FlvProcessor
                         _baseTimeStamp = tag.TimeStamp;
                         _hasOffset = true;
                         StartDateTime = DateTime.Now;
-                        logger.Trace("重设时间戳 {0} 毫秒", _baseTimeStamp);
                     }
                 }
                 else if (tag.TagType == TagType.AUDIO)
@@ -310,7 +302,6 @@ namespace BililiveRecorder.FlvProcessor
                     _tagAudioCount++;
                     if (_tagAudioCount < 2)
                     {
-                        logger.Trace("第一个 Audio Tag 时间戳 {0} ms", tag.TimeStamp);
                         _headerTags.Add(tag);
                     }
                     else
@@ -318,7 +309,6 @@ namespace BililiveRecorder.FlvProcessor
                         _baseTimeStamp = tag.TimeStamp;
                         _hasOffset = true;
                         StartDateTime = DateTime.Now;
-                        logger.Trace("重设时间戳 {0} 毫秒", _baseTimeStamp);
                     }
                 }
             }
@@ -350,7 +340,6 @@ namespace BililiveRecorder.FlvProcessor
             {
                 if (_finalized) { throw new InvalidOperationException("Processor Already Closed"); }
 
-                logger.Info("剪辑处理中，将会保存过去 {0} 秒和将来 {1} 秒的直播流", (_tags[_tags.Count - 1].TimeStamp - _tags[0].TimeStamp) / 1000d, ClipLengthFuture);
                 IFlvClipProcessor clip = funcFlvClipProcessor().Initialize(GetClipFileName(), Metadata, _headerTags, new List<IFlvTag>(_tags.ToArray()), ClipLengthFuture);
                 clip.ClipFinalized += (sender, e) => { Clips.Remove(e.ClipProcessor); };
                 Clips.Add(clip);
@@ -362,7 +351,6 @@ namespace BililiveRecorder.FlvProcessor
         {
             try
             {
-                logger.Debug("正在关闭当前录制文件: " + _targetFile.Name);
                 Metadata.Meta["duration"] = CurrentMaxTimestamp / 1000.0;
                 Metadata.Meta["lasttimestamp"] = (double)CurrentMaxTimestamp;
                 byte[] metadata = Metadata.ToBytes();
@@ -372,9 +360,9 @@ namespace BililiveRecorder.FlvProcessor
                 _targetFile?.Seek(13 + 11, SeekOrigin.Begin);
                 _targetFile?.Write(metadata, 0, metadata.Length);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                logger.Error(ex, "保存录制文件时出错");
+
             }
             finally
             {
