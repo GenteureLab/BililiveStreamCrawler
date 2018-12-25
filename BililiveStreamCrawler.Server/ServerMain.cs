@@ -243,7 +243,7 @@ namespace BililiveStreamCrawler.Server
                                     {
                                         client.CurrentJobs.Remove(room);
                                         RetryRoom(room);
-                                        SendTelegramMessage(client.Name + " 处理 " + room.Roomid + " 时出错，将重新分配任务 #failed\n\n" + command.Error);
+                                        Console.WriteLine(client.Name + " 处理 " + room.Roomid + " 时出错，将重新分配任务 #failed\n\n" + command.Error);
                                     }
                                     else
                                     {
