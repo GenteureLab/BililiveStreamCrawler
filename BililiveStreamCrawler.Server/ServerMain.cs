@@ -60,6 +60,7 @@ namespace BililiveStreamCrawler.Server
 
             SetupTelegram();
             SetupScheduler();
+            FetchNewRoom(true);
 
             using (var server = new WebServer(Config.Url))
             {
@@ -87,7 +88,7 @@ namespace BililiveStreamCrawler.Server
         {
             var reg = new Registry();
 
-            reg.Schedule(() => FetchNewRoom()).WithName("Fetch New Room").ToRunNow().AndEvery(2).Minutes();
+            reg.Schedule(() => FetchNewRoom()).WithName("Fetch New Room").ToRunEvery(90).Seconds();
             reg.Schedule(() => ReassignTimedoutTasks()).WithName("re-assign timed-out tasks").ToRunEvery(1).Minutes();
             reg.Schedule(() => RemoveOldTasks()).WithName("remove old tasks").ToRunEvery(5).Minutes();
 
@@ -440,7 +441,7 @@ namespace BililiveStreamCrawler.Server
         /// <summary>
         /// 从B站获取最新开播的直播间
         /// </summary>
-        private static void FetchNewRoom()
+        private static void FetchNewRoom(bool dry = false)
         {
             var c = new WebClient();
             c.Headers.Add(HttpRequestHeader.Accept, "application/json, text/plain, */*");
@@ -448,7 +449,7 @@ namespace BililiveStreamCrawler.Server
             c.Headers.Add("Origin", "https://live.bilibili.com");
             c.Headers.Add(HttpRequestHeader.UserAgent, "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/71.0.3578.98 Safari/537.36");
 
-            string rawdata = c.DownloadString("https://api.live.bilibili.com/room/v1/Area/getListByAreaID?areaId=0&sort=livetime&pageSize=150&page=2");
+            string rawdata = c.DownloadString("https://api.live.bilibili.com/room/v1/Area/getListByAreaID?areaId=0&sort=livetime&pageSize=100&page=2");
             JObject j = JObject.Parse(rawdata);
             JArray rawlist = j["data"] as JArray;
 
@@ -460,7 +461,10 @@ namespace BililiveStreamCrawler.Server
                     if (!ProcessedRoom.Contains(roomid))
                     {
                         ProcessedRoom.AddLast(roomid);
-                        ProcessRoom(rawroom.ToObject<StreamRoom>());
+                        if (!dry)
+                        {
+                            ProcessRoom(rawroom.ToObject<StreamRoom>());
+                        }
                     }
                 }
                 catch (Exception) { }
