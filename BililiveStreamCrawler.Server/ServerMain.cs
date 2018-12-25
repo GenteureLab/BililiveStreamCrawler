@@ -168,7 +168,7 @@ namespace BililiveStreamCrawler.Server
             lock (lockObject)
             {
                 ConnectedClient.Add(newclient);
-                TelegramMessage.Append(newclient.Name).Append(" #connect\n\n");
+                TelegramMessage.Append(DateTime.Now.ToString("HH:mm:ss")).Append("\n").Append(newclient.Name).Append(" #connect\n\n");
             }
         }
 
@@ -185,6 +185,8 @@ namespace BililiveStreamCrawler.Server
                 {
 
                     TelegramMessage
+                        .Append(DateTime.Now.ToString("HH:mm:ss"))
+                        .Append("\n")
                         .Append(client.Name)
                         .Append(" #disconnect");
                     if (client.CurrentJobs.Count != 0)
@@ -234,6 +236,8 @@ namespace BililiveStreamCrawler.Server
                                     else
                                     {
                                         TelegramMessage
+                                            .Append(DateTime.Now.ToString("HH:mm:ss"))
+                                            .Append("\n")
                                             .Append(client.Name)
                                             .Append(" 尝试提交 ")
                                             .Append(command.Room?.Roomid)
@@ -254,10 +258,12 @@ namespace BililiveStreamCrawler.Server
                                     else
                                     {
                                         TelegramMessage
-                                               .Append(client.Name)
-                                               .Append(" 尝试报告 ")
-                                               .Append(command.Room?.Roomid)
-                                               .Append(" #rejected\n\n");
+                                            .Append(DateTime.Now.ToString("HH:mm:ss"))
+                                            .Append("\n")
+                                            .Append(client.Name)
+                                            .Append(" 尝试报告 ")
+                                            .Append(command.Room?.Roomid)
+                                            .Append(" #rejected\n\n");
                                         Console.WriteLine(client.Name + " 房间号:" + command.Room?.Roomid);
                                         Console.WriteLine(command.Error);
                                     }
@@ -320,7 +326,10 @@ namespace BililiveStreamCrawler.Server
                 exception = ex;
             }
 
-            TelegramMessage.Append(name)
+            TelegramMessage
+                .Append(DateTime.Now.ToString("HH:mm:ss"))
+                .Append("\n")
+                .Append(name)
                 .Append(" #success ")
                 .Append(room.Roomid)
                 .Append("\nW: ")
@@ -409,7 +418,12 @@ namespace BililiveStreamCrawler.Server
 
                 if (temp.Count > 0)
                 {
-                    TelegramMessage.Append("#remove 处理速度跟不上\n移除了 ").Append(temp.Count).Append(" 个任务\n\n");
+                    TelegramMessage
+                        .Append(DateTime.Now.ToString("HH:mm:ss"))
+                        .Append("\n")
+                        .Append("#remove 处理速度跟不上\n移除了 ")
+                        .Append(temp.Count)
+                        .Append(" 个任务\n\n");
                 }
             }
         }
@@ -429,7 +443,8 @@ namespace BililiveStreamCrawler.Server
                 {
                     client.CurrentJobs.Where(x => x.StartTime + diff < now).ToList().ForEach(x =>
                     {
-                        TelegramMessage.Append(client.Name).Append(" #timeout ").Append(x.Roomid).Append("\n\n");
+                        TelegramMessage.Append(DateTime.Now.ToString("HH:mm:ss")).Append("\n")
+                            .Append(client.Name).Append(" #timeout ").Append(x.Roomid).Append("\n\n");
 
                         client.CurrentJobs.Remove(x);
                         RetryRoom(x);
@@ -497,7 +512,8 @@ namespace BililiveStreamCrawler.Server
                 if (TelegramMessage.Length > 0)
                 {
                     TelegramMessage
-                        .Append("排队中: ")
+                        .Append(DateTime.Now.ToString("HH:mm:ss"))
+                        .Append("\n排队中: ")
                         .Append(RoomQueue.Count)
                         .Append("\n处理中: ")
                         .Append(ConnectedClient.Aggregate(0, (c, x) => c += x.CurrentJobs.Count))
