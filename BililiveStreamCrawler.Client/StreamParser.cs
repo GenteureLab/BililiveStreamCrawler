@@ -79,7 +79,6 @@ namespace BililiveStreamCrawler.Client
 
                 if (_response.StatusCode != HttpStatusCode.OK)
                 {
-                    _CleanupFlvRequest();
                     throw new Exception("StatusCode: " + _response.StatusCode);
                 }
                 else
