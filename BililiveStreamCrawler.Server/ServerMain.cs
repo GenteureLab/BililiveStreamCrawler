@@ -40,7 +40,7 @@ namespace BililiveStreamCrawler.Server
         /// <summary>
         /// 空闲可以分配任务的 Client
         /// </summary>
-        private static readonly LinkedListQueue<CrawlerClient> ClientQueue = new LinkedListQueue<CrawlerClient>();
+        // private static readonly LinkedListQueue<CrawlerClient> ClientQueue = new LinkedListQueue<CrawlerClient>();
 
         /// <summary>
         /// 连接上了的所有 Client
@@ -88,39 +88,32 @@ namespace BililiveStreamCrawler.Server
         {
             var reg = new Registry();
 
+            reg.Schedule(() => IssueTasks()).WithName("issue tasks").ToRunEvery(2).Seconds();
             reg.Schedule(() => FetchNewRoom()).WithName("Fetch New Room").ToRunEvery(90).Seconds();
-            reg.Schedule(() => ReassignTimedoutTasks()).WithName("re-assign timed-out tasks").ToRunEvery(1).Minutes();
-            reg.Schedule(() => RemoveOldTasks()).WithName("remove old tasks").ToRunEvery(5).Minutes();
+            reg.Schedule(() => ReassignTimedoutTasks()).WithName("re-assign timed-out tasks").ToRunEvery(10).Seconds();
+            reg.Schedule(() => RemoveOldTasks()).WithName("remove old tasks").ToRunEvery(3).Minutes();
 
             JobManager.Initialize(reg);
         }
 
-        /// <summary>
-        /// 给 client 找活干
-        /// </summary>
-        /// <param name="client"></param>
-        private static void ProcessClient(CrawlerClient client)
+        private static void IssueTasks()
         {
             lock (lockObject)
             {
-                if (ClientQueue.Contains(client))
+                while (RoomQueue.Count > 0)
                 {
-                    // 已经在排队中
-                    return;
-                }
-                else if (client.CurrentJobs.Count >= client.MaxParallelTask)
-                {
-                    // 眼大肚子小（
-                    return;
-                }
-                else if (RoomQueue.Count > 0)
-                {
-                    var room = RoomQueue.Dequeue();
-                    SendTask(client, room);
-                }
-                else
-                {
-                    ClientQueue.Enqueue(client);
+                    var client = ConnectedClient.FirstOrDefault(x => x.MaxParallelTask > x.CurrentJobs.Count);
+                    if (client == null)
+                    {
+                        return;
+                    }
+                    else
+                    {
+                        var room = RoomQueue.Dequeue();
+                        ConnectedClient.Remove(client);
+                        ConnectedClient.Add(client);
+                        SendTask(client, room);
+                    }
                 }
             }
         }
@@ -133,17 +126,17 @@ namespace BililiveStreamCrawler.Server
         {
             lock (lockObject)
             {
-                while (ClientQueue.Count > 0)
+                var client = ConnectedClient.FirstOrDefault(x => x.MaxParallelTask > x.CurrentJobs.Count);
+                if (client == null)
                 {
-                    var client = ClientQueue.Dequeue();
-                    if (client.MaxParallelTask >= client.CurrentJobs.Count)
-                    {
-                        SendTask(client, room);
-                        return;
-                    }
+                    RoomQueue.Enqueue(room);
                 }
-
-                RoomQueue.Enqueue(room);
+                else
+                {
+                    ConnectedClient.Remove(client);
+                    ConnectedClient.Add(client);
+                    SendTask(client, room);
+                }
             }
         }
 
@@ -199,7 +192,6 @@ namespace BililiveStreamCrawler.Server
                     }
                     SendTelegramMessage(sb.ToString());
 
-                    ClientQueue.Remove(client);
                     ConnectedClient.Remove(client);
                     client.CurrentJobs.ForEach(RetryRoom);
                 }
@@ -225,8 +217,8 @@ namespace BililiveStreamCrawler.Server
                         switch (command.Type)
                         {
                             case CommandType.Request:
-                                Console.WriteLine("收到 Request: " + client.Name);
-                                ProcessClient(client);
+                                // Console.WriteLine("收到 Request: " + client.Name);
+                                // ProcessClient(client);
                                 break;
                             case CommandType.CompleteSuccess:
                                 {
@@ -370,17 +362,17 @@ namespace BililiveStreamCrawler.Server
                 return;
             }
 
-            while (ClientQueue.Count > 0)
+            var client = ConnectedClient.FirstOrDefault(x => x.MaxParallelTask > x.CurrentJobs.Count);
+            if (client == null)
             {
-                var client = ClientQueue.Dequeue();
-                if (client.MaxParallelTask >= client.CurrentJobs.Count)
-                {
-                    SendTask(client, room);
-                    return;
-                }
+                RoomQueue.Enqueue(room);
             }
-
-            RoomQueue.Enqueue(room);
+            else
+            {
+                ConnectedClient.Remove(client);
+                ConnectedClient.Add(client);
+                SendTask(client, room);
+            }
         }
 
         /// <summary>
