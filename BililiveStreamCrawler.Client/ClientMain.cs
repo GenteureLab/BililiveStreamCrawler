@@ -38,7 +38,12 @@ namespace BililiveStreamCrawler.Client
             {
                 WebSocket.SslConfiguration.CheckCertificateRevocation = false;
                 WebSocket.SslConfiguration.EnabledSslProtocols = SslProtocols.Tls12 | SslProtocols.Tls11 | SslProtocols.Tls;
-                WebSocket.SslConfiguration.ClientCertificates.Add(new X509Certificate2("client.pfx"));
+                WebSocket.SslConfiguration.ClientCertificates = new X509CertificateCollection(new[] { new X509Certificate2("client.pfx") });
+                WebSocket.SslConfiguration.ClientCertificateSelectionCallback =
+                    (object sender, string targetHost, X509CertificateCollection localCertificates, X509Certificate remoteCertificate, string[] acceptableIssuers) =>
+                    {
+                        return localCertificates[0];
+                    };
                 WebSocket.SslConfiguration.ServerCertificateValidationCallback =
                     (object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors) =>
                     {
