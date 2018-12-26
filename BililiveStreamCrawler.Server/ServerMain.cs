@@ -10,7 +10,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Net.WebSockets;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 using Telegram.Bot;
 using Telegram.Bot.Types.Enums;
@@ -152,13 +154,22 @@ namespace BililiveStreamCrawler.Server
                 .Select(x => x.Split('='))
                 .Where(x => x.Length == 2)
                 .ToDictionary(x => Uri.UnescapeDataString(x[0]), x => Uri.UnescapeDataString(x[1]));
-            if (!(query.ContainsKey("name") && query.ContainsKey("max")))
+
+            if (!query.TryGetValue("version", out string version) || version != Static.VERSION)
             {
                 webSocket.WebSocket.CloseAsync();
                 return;
             }
-            string name = query["name"];
-            if ((!int.TryParse(query["max"], out int max)) || name.Length < 5)
+
+            if (!query.ContainsKey("max"))
+            {
+                webSocket.WebSocket.CloseAsync();
+                return;
+            }
+
+            string name = (webSocket.GetType().GetField("_webSocketContext").GetValue(webSocket) as HttpListenerWebSocketContext).Headers.GetValues("CertSdn")[0].Remove(0, 3);
+
+            if ((!int.TryParse(query["max"], out int max)) || name.Length < 5 || name.Length > 20 || (!Regex.IsMatch(name, "[A-Za-z0-9]+")))
             {
                 webSocket.WebSocket.CloseAsync();
                 return;

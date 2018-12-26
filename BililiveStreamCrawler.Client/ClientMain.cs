@@ -29,7 +29,7 @@ namespace BililiveStreamCrawler.Client
 
             var ub = new UriBuilder(Config.Url)
             {
-                Query = "name=" + Uri.EscapeDataString(Config.Name) + "&max=" + Config.MaxParallelTask
+                Query = "max=" + Config.MaxParallelTask + "&version=" + Static.VERSION
             };
 
             Console.WriteLine("Connecting: " + ub.Uri.AbsoluteUri);
@@ -38,6 +38,7 @@ namespace BililiveStreamCrawler.Client
             {
                 WebSocket.SslConfiguration.CheckCertificateRevocation = false;
                 WebSocket.SslConfiguration.EnabledSslProtocols = SslProtocols.Tls12 | SslProtocols.Tls11 | SslProtocols.Tls;
+                WebSocket.SslConfiguration.ClientCertificates.Add(new X509Certificate2("client.pfx"));
                 WebSocket.SslConfiguration.ServerCertificateValidationCallback =
                     (object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors) =>
                     {

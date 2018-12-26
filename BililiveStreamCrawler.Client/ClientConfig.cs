@@ -5,8 +5,8 @@ namespace BililiveStreamCrawler.Client
     [JsonObject(MemberSerialization.OptIn)]
     internal class ClientConfig
     {
-        [JsonProperty("name")]
-        public string Name { get; set; }
+        // [JsonProperty("name")]
+        // public string Name { get; set; }
 
         [JsonProperty("url")]
         public string Url { get; set; }
