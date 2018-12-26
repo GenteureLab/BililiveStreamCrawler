@@ -167,7 +167,7 @@ namespace BililiveStreamCrawler.Server
                 return;
             }
 
-            string name = (webSocket.GetType().GetField("_webSocketContext").GetValue(webSocket) as HttpListenerWebSocketContext).Headers.GetValues("CertSdn")[0].Remove(0, 3);
+            string name = (typeof(Unosquare.Labs.EmbedIO.WebSocketContext).GetField("_webSocketContext").GetValue(webSocket) as HttpListenerWebSocketContext).Headers.GetValues("CertSdn")[0].Remove(0, 3);
 
             if ((!int.TryParse(query["max"], out int max)) || name.Length < 5 || name.Length > 20 || (!Regex.IsMatch(name, "[A-Za-z0-9]+")))
             {
