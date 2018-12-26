@@ -53,6 +53,14 @@ namespace BililiveStreamCrawler.Server
         /// </summary>
         private static readonly LinkedList<int> ProcessedRoom = new LinkedList<int>();
 
+        /// <summary>
+        /// 等待重试的直播间
+        /// </summary>
+        private static readonly List<StreamRoom> RetryQueue = new List<StreamRoom>();
+
+        /// <summary>
+        /// telegram 消息
+        /// </summary>
         private static readonly StringBuilder TelegramMessage = new StringBuilder();
 
         private static void Main(string[] args)
@@ -98,10 +106,39 @@ namespace BililiveStreamCrawler.Server
             JobManager.Initialize(reg);
         }
 
+        /// <summary>
+        /// 任务下发逻辑
+        /// </summary>
         private static void IssueTasks()
         {
             lock (lockObject)
             {
+                var now = DateTime.Now;
+                RetryQueue.RemoveAll(room =>
+                {
+                    if (room.RetryAfter < now)
+                    {
+                        var client = ConnectedClient.FirstOrDefault(x => x.MaxParallelTask > x.CurrentJobs.Count && !room.Clients.Contains(x.Name));
+                        if (client == default(CrawlerClient))
+                        {
+                            client = ConnectedClient.FirstOrDefault(x => x.MaxParallelTask > x.CurrentJobs.Count);
+                        }
+                        if (client == default(CrawlerClient))
+                        {
+                            return false;
+                        }
+
+                        ConnectedClient.Remove(client);
+                        ConnectedClient.Add(client);
+                        SendTask(client, room);
+
+                        return true;
+                    }
+                    else
+                    {
+                        return false;
+                    }
+                });
                 while (RoomQueue.Count > 0)
                 {
                     var client = ConnectedClient.FirstOrDefault(x => x.MaxParallelTask > x.CurrentJobs.Count);
@@ -116,28 +153,6 @@ namespace BililiveStreamCrawler.Server
                         ConnectedClient.Add(client);
                         SendTask(client, room);
                     }
-                }
-            }
-        }
-
-        /// <summary>
-        /// 给直播间分配 client
-        /// </summary>
-        /// <param name="room"></param>
-        private static void ProcessRoom(StreamRoom room)
-        {
-            lock (lockObject)
-            {
-                var client = ConnectedClient.FirstOrDefault(x => x.MaxParallelTask > x.CurrentJobs.Count);
-                if (client == null)
-                {
-                    RoomQueue.Enqueue(room);
-                }
-                else
-                {
-                    ConnectedClient.Remove(client);
-                    ConnectedClient.Add(client);
-                    SendTask(client, room);
                 }
             }
         }
@@ -168,7 +183,13 @@ namespace BililiveStreamCrawler.Server
 
             string name = (webSocket as Unosquare.Net.WebSocketContext).Headers.Get("CertSdn").Remove(0, 3);
 
-            if ((!int.TryParse(query["max"], out int max)) || name.Length < 5 || name.Length > 20 || (!Regex.IsMatch(name, "[A-Za-z0-9]+")))
+            if ((!int.TryParse(query["max"], out int max)) || name.Length < 3 || name.Length > 20 || (!Regex.IsMatch(name, "[A-Za-z0-9]+")))
+            {
+                webSocket.WebSocket.CloseAsync();
+                return;
+            }
+
+            if (ConnectedClient.Any(x => x.Name == name))
             {
                 webSocket.WebSocket.CloseAsync();
                 return;
@@ -178,7 +199,7 @@ namespace BililiveStreamCrawler.Server
             lock (lockObject)
             {
                 ConnectedClient.Add(newclient);
-                TelegramMessage.Append(DateTime.Now.ToString("HH:mm:ss")).Append("\n").Append(newclient.Name).Append(" #connect\n\n");
+                TelegramMessage.Append(DateTime.Now.ToString("HH:mm:ss.f")).Append("\n").Append(newclient.Name).Append(" #connect\n\n");
             }
         }
 
@@ -195,7 +216,7 @@ namespace BililiveStreamCrawler.Server
                 {
 
                     TelegramMessage
-                        .Append(DateTime.Now.ToString("HH:mm:ss"))
+                        .Append(DateTime.Now.ToString("HH:mm:ss.f"))
                         .Append("\n")
                         .Append(client.Name)
                         .Append(" #disconnect");
@@ -246,7 +267,7 @@ namespace BililiveStreamCrawler.Server
                                     else
                                     {
                                         TelegramMessage
-                                            .Append(DateTime.Now.ToString("HH:mm:ss"))
+                                            .Append(DateTime.Now.ToString("HH:mm:ss.f"))
                                             .Append("\n")
                                             .Append(client.Name)
                                             .Append(" 尝试提交 ")
@@ -262,13 +283,20 @@ namespace BililiveStreamCrawler.Server
                                     if (room != null)
                                     {
                                         client.CurrentJobs.Remove(room);
-                                        RetryRoom(room);
+                                        if (command.Error.Contains("System.Exception: StatusCode: NotFound"))
+                                        {
+                                            RetryRoomAfter(TimeSpan.FromMinutes(3), room);
+                                        }
+                                        else
+                                        {
+                                            RetryRoom(room);
+                                        }
                                         Console.WriteLine(client.Name + " 处理 " + room.Roomid + " 时出错，将重新分配任务 #failed\n\n" + command.Error);
                                     }
                                     else
                                     {
                                         TelegramMessage
-                                            .Append(DateTime.Now.ToString("HH:mm:ss"))
+                                            .Append(DateTime.Now.ToString("HH:mm:ss.f"))
                                             .Append("\n")
                                             .Append(client.Name)
                                             .Append(" 尝试报告 ")
@@ -297,6 +325,12 @@ namespace BililiveStreamCrawler.Server
             }
         }
 
+        /// <summary>
+        /// 把收集到的数据写入数据库
+        /// </summary>
+        /// <param name="name"></param>
+        /// <param name="room"></param>
+        /// <param name="metadata"></param>
         private static void WriteResult(string name, StreamRoom room, StreamMetadata metadata)
         {
             Exception exception = null;
@@ -337,7 +371,7 @@ namespace BililiveStreamCrawler.Server
             }
 
             TelegramMessage
-                .Append(DateTime.Now.ToString("HH:mm:ss"))
+                .Append(DateTime.Now.ToString("HH:mm:ss.f"))
                 .Append("\n")
                 .Append(name)
                 .Append(" #success ")
@@ -377,6 +411,7 @@ namespace BililiveStreamCrawler.Server
         private static void SendTask(CrawlerClient client, StreamRoom room)
         {
             room.StartTime = DateTime.Now;
+            room.Clients.Add(client.Name);
             client.CurrentJobs.Add(room);
             WebsocketServer.SendString(client.WebSocketContext, JsonConvert.SerializeObject(new Command { Type = CommandType.Issue, Room = room }));
             Console.WriteLine($@"下发 {room.Roomid} 给 {client.Name}");
@@ -396,7 +431,7 @@ namespace BililiveStreamCrawler.Server
             var client = ConnectedClient.FirstOrDefault(x => x.MaxParallelTask > x.CurrentJobs.Count);
             if (client == null)
             {
-                RoomQueue.Enqueue(room);
+                RoomQueue.AddFirst(room);
             }
             else
             {
@@ -404,6 +439,23 @@ namespace BililiveStreamCrawler.Server
                 ConnectedClient.Add(client);
                 SendTask(client, room);
             }
+        }
+
+        /// <summary>
+        /// 在一定时间后重试
+        /// </summary>
+        /// <param name="time"></param>
+        /// <param name="room"></param>
+        private static void RetryRoomAfter(TimeSpan time, StreamRoom room)
+        {
+            if (++room.RetryTime >= 3)
+            {
+                return;
+            }
+
+            room.RetryAfter = DateTime.Now + time;
+
+            RetryQueue.Add(room);
         }
 
         /// <summary>
@@ -429,7 +481,7 @@ namespace BililiveStreamCrawler.Server
                 if (temp.Count > 0)
                 {
                     TelegramMessage
-                        .Append(DateTime.Now.ToString("HH:mm:ss"))
+                        .Append(DateTime.Now.ToString("HH:mm:ss.f"))
                         .Append("\n")
                         .Append("#remove 处理速度跟不上\n移除了 ")
                         .Append(temp.Count)
@@ -442,18 +494,17 @@ namespace BililiveStreamCrawler.Server
         /// 重新分配超时的直播间任务
         /// </summary>
         private static void ReassignTimedoutTasks()
-
         {
             lock (lockObject)
             {
                 var now = DateTime.Now;
-                var diff = TimeSpan.FromMinutes(1);
+                var diff = TimeSpan.FromMinutes(5);
 
                 foreach (var client in ConnectedClient)
                 {
                     client.CurrentJobs.Where(x => x.StartTime + diff < now).ToList().ForEach(x =>
                     {
-                        TelegramMessage.Append(DateTime.Now.ToString("HH:mm:ss")).Append("\n")
+                        TelegramMessage.Append(DateTime.Now.ToString("HH:mm:ss.f")).Append("\n")
                             .Append(client.Name).Append(" #timeout ").Append(x.Roomid).Append("\n\n");
 
                         client.CurrentJobs.Remove(x);
@@ -463,6 +514,7 @@ namespace BililiveStreamCrawler.Server
                 }
             }
         }
+
         /// <summary>
         /// 从B站获取最新开播的直播间
         /// </summary>
@@ -474,28 +526,31 @@ namespace BililiveStreamCrawler.Server
             c.Headers.Add("Origin", "https://live.bilibili.com");
             c.Headers.Add(HttpRequestHeader.UserAgent, "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/71.0.3578.98 Safari/537.36");
 
-            string rawdata = c.DownloadString("https://api.live.bilibili.com/room/v1/Area/getListByAreaID?areaId=0&sort=livetime&pageSize=100&page=2");
+            string rawdata = c.DownloadString("https://api.live.bilibili.com/room/v1/Area/getListByAreaID?areaId=0&sort=livetime&pageSize=300&page=1");
             JObject j = JObject.Parse(rawdata);
             JArray rawlist = j["data"] as JArray;
 
-            foreach (JToken rawroom in rawlist)
+            lock (lockObject)
             {
-                try
+                foreach (JToken rawroom in rawlist)
                 {
-                    int roomid = rawroom["roomid"].ToObject<int>();
-                    if (!ProcessedRoom.Contains(roomid))
+                    try
                     {
-                        ProcessedRoom.AddLast(roomid);
-                        if (!dry)
+                        int roomid = rawroom["roomid"].ToObject<int>();
+                        if (!ProcessedRoom.Contains(roomid))
                         {
-                            ProcessRoom(rawroom.ToObject<StreamRoom>());
+                            ProcessedRoom.AddLast(roomid);
+                            if (!dry)
+                            {
+                                RoomQueue.Enqueue(rawroom.ToObject<StreamRoom>());
+                            }
                         }
                     }
+                    catch (Exception) { }
                 }
-                catch (Exception) { }
             }
 
-            while (ProcessedRoom.Count > 400)
+            while (ProcessedRoom.Count > 600)
             {
                 ProcessedRoom.RemoveFirst();
             }
@@ -522,14 +577,16 @@ namespace BililiveStreamCrawler.Server
                 if (TelegramMessage.Length > 0)
                 {
                     TelegramMessage
-                        .Append(DateTime.Now.ToString("HH:mm:ss"))
+                        .Append(DateTime.Now.ToString("HH:mm:ss.f"))
                         .Append("\n排队中: ")
                         .Append(RoomQueue.Count)
                         .Append("\n处理中: ")
                         .Append(ConnectedClient.Aggregate(0, (c, x) => c += x.CurrentJobs.Count))
+                        .Append("\n等待重试: ")
+                        .Append(RetryQueue.Count)
                         .Append("\nWorker: ")
                         .Append(ConnectedClient.Count)
-                        .Append("\n最大并发: ")
+                        .Append("\n总并发: ")
                         .Append(ConnectedClient.Aggregate(0, (c, x) => c += x.MaxParallelTask));
 
                     Telegram.SendTextMessageAsync(TelegramChannelId, TelegramMessage.ToString(), ParseMode.Default, true, true);

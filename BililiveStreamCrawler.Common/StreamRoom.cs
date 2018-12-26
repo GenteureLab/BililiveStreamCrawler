@@ -1,5 +1,6 @@
 ﻿using Newtonsoft.Json;
 using System;
+using System.Collections.Generic;
 
 namespace BililiveStreamCrawler.Common
 {
@@ -72,6 +73,11 @@ namespace BililiveStreamCrawler.Common
         public DateTime? StartTime { get; set; }
 
         /// <summary>
+        /// 在此时间后重试请求
+        /// </summary>
+        public DateTime RetryAfter { get; set; } = DateTime.Now;
+
+        /// <summary>
         /// 此任务生成时间（Object 创建时间）
         /// </summary>
         public DateTime FetchTime { get; } = DateTime.Now;
@@ -81,5 +87,9 @@ namespace BililiveStreamCrawler.Common
         /// </summary>
         public int RetryTime { get; set; } = 0;
 
+        /// <summary>
+        /// 尝试过此直播间的 client 名字
+        /// </summary>
+        public List<string> Clients { get; set; } = new List<string>();
     }
 }
