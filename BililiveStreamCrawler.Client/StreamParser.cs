@@ -25,17 +25,18 @@ namespace BililiveStreamCrawler.Client
             Stream _stream = null;
             HttpResponseMessage _response = null;
 
-            var cancellationTokenSource = new CancellationTokenSource();
-            var token = cancellationTokenSource.Token;
+            var cancellationTokenSource = new CancellationTokenSource(TimeSpan.FromMinutes(2));
 
-
+            bool success = false;
             bool avc = false;
+
             Processor.TagProcessed += (sender, e) =>
             {
                 IFlvTag t = e.Tag;
 
                 if (t.TimeStamp > 10 * 1000)
                 {
+                    success = true;
                     try
                     {
                         cancellationTokenSource.Cancel();
@@ -74,7 +75,7 @@ namespace BililiveStreamCrawler.Client
 
                     streamMetadata.FlvHost = new Uri(flv_path).Host;
 
-                    _response = await client.GetAsync(flv_path, HttpCompletionOption.ResponseHeadersRead);
+                    _response = await client.GetAsync(flv_path, HttpCompletionOption.ResponseHeadersRead, cancellationTokenSource.Token);
                 }
 
                 if (_response.StatusCode != HttpStatusCode.OK)
@@ -83,14 +84,14 @@ namespace BililiveStreamCrawler.Client
                 }
                 else
                 {
-                    // Processor = newIFlvStreamProcessor().Initialize(GetStreamFilePath, GetClipFilePath, _config.EnabledFeature, _config.CuttingMode);
-                    // Processor.ClipLengthFuture = _config.ClipLengthFuture;
-                    // Processor.ClipLengthPast = _config.ClipLengthPast;
-                    // Processor.CuttingNumber = _config.CuttingNumber;
-
                     _stream = await _response.Content.ReadAsStreamAsync();
 
                     await _ReadStreamLoop();
+
+                    if (!success)
+                    {
+                        throw new Exception("Timeout");
+                    }
 
                     {
                         var metadata = Processor.Metadata.Meta.Where(x => x.Key.Replace("\0", "").Length != 0).ToDictionary(
@@ -149,9 +150,9 @@ namespace BililiveStreamCrawler.Client
                 {
                     const int BUF_SIZE = 1024 * 8;
                     byte[] buffer = new byte[BUF_SIZE];
-                    while (!token.IsCancellationRequested)
+                    while (!cancellationTokenSource.Token.IsCancellationRequested)
                     {
-                        int bytesRead = await _stream.ReadAsync(buffer, 0, BUF_SIZE, token);
+                        int bytesRead = await _stream.ReadAsync(buffer, 0, BUF_SIZE, cancellationTokenSource.Token);
                         if (bytesRead != 0)
                         {
                             if (bytesRead != BUF_SIZE)
@@ -171,7 +172,7 @@ namespace BililiveStreamCrawler.Client
                 }
                 catch (Exception e)
                 {
-                    if (e is ObjectDisposedException && token.IsCancellationRequested) { return; }
+                    if (e is ObjectDisposedException && cancellationTokenSource.Token.IsCancellationRequested) { return; }
 
                     throw;
                 }

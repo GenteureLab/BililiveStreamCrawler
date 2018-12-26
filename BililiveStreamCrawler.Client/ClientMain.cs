@@ -68,12 +68,13 @@ namespace BililiveStreamCrawler.Client
                     };
             }
 
-            WebSocket.OnOpen += Ws_OnOpen;
             WebSocket.OnMessage += Ws_OnMessage;
             WebSocket.OnError += Ws_OnError;
             WebSocket.OnClose += Ws_OnClose;
 
             WebSocket.Connect();
+
+            Console.WriteLine("Connected!");
 
             Console.CancelKeyPress += (sender, e) => { WebSocket.Close(); Environment.Exit(0); };
 
@@ -85,11 +86,15 @@ namespace BililiveStreamCrawler.Client
 
         private static void Ws_OnClose(object sender, CloseEventArgs e)
         {
+            Console.WriteLine("Connection Closed!");
+            Console.WriteLine(e.Reason);
             Environment.Exit(1);
         }
 
         private static void Ws_OnError(object sender, WebSocketSharp.ErrorEventArgs e)
         {
+            Console.WriteLine("Connection Error!");
+            Console.WriteLine(e.Message);
             Environment.Exit(2);
         }
 
@@ -105,6 +110,8 @@ namespace BililiveStreamCrawler.Client
 
             StreamRoom streamRoom = command.Room;
 
+            Console.WriteLine("New task: " + streamRoom.Roomid);
+
             StreamRooms.Add(streamRoom);
             Task.Run(() => StreamParser.Parse(streamRoom))
                 .ContinueWith((task) =>
@@ -113,37 +120,16 @@ namespace BililiveStreamCrawler.Client
                     if (!task.IsFaulted)
                     {
                         StreamMetadata data = task.Result;
+                        Console.WriteLine("Success: " + streamRoom.Roomid);
                         WebSocket.Send(JsonConvert.SerializeObject(new Command { Type = CommandType.CompleteSuccess, Room = streamRoom, Metadata = data }));
                     }
                     else
                     {
                         string error = task.Exception.ToString();
+                        Console.WriteLine("ERROR: " + streamRoom.Roomid + " " + task.Exception.InnerException.Message);
                         WebSocket.Send(JsonConvert.SerializeObject(new Command { Type = CommandType.CompleteFailed, Room = streamRoom, Error = error }));
                     }
-                    TryRequestNewTask();
                 });
-            TryRequestNewTask();
-        }
-
-        private static void Ws_OnOpen(object sender, EventArgs e)
-        {
-            TryRequestNewTask();
-        }
-
-        private static void TryRequestNewTask()
-        {
-            lock (lockObject)
-            {
-                if (StreamRooms.Count < Config.MaxParallelTask)
-                {
-                    RequestNewTask();
-                }
-            }
-        }
-
-        private static void RequestNewTask()
-        {
-            WebSocket.Send(requestPayload);
         }
     }
 }
