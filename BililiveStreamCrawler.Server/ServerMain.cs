@@ -10,7 +10,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
-using System.Net.WebSockets;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -167,12 +166,7 @@ namespace BililiveStreamCrawler.Server
                 return;
             }
 
-            HttpListenerWebSocketContext httpListenerWebSocketContext = webSocket
-                .GetType()
-                .GetField("_webSocketContext", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
-                .GetValue(webSocket) as HttpListenerWebSocketContext;
-            System.Collections.Specialized.NameValueCollection headers = httpListenerWebSocketContext.Headers;
-            string name = headers.Get("CertSdn").Remove(0, 3);
+            string name = (webSocket as Unosquare.Net.WebSocketContext).Headers.Get("CertSdn").Remove(0, 3);
 
             if ((!int.TryParse(query["max"], out int max)) || name.Length < 5 || name.Length > 20 || (!Regex.IsMatch(name, "[A-Za-z0-9]+")))
             {
