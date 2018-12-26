@@ -532,6 +532,8 @@ namespace BililiveStreamCrawler.Server
 
             lock (lockObject)
             {
+                int before = RoomQueue.Count;
+
                 foreach (JToken rawroom in rawlist)
                 {
                     try
@@ -548,6 +550,15 @@ namespace BililiveStreamCrawler.Server
                     }
                     catch (Exception) { }
                 }
+
+                int diff = RoomQueue.Count - before;
+
+                TelegramMessage
+                    .Append(DateTime.Now.ToString("HH:mm:ss.f"))
+                    .Append("\n")
+                    .Append("新增任务 ")
+                    .Append(diff)
+                    .Append("个 #newtask\n\n");
             }
 
             while (ProcessedRoom.Count > 600)
