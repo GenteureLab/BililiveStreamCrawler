@@ -553,12 +553,15 @@ namespace BililiveStreamCrawler.Server
 
                 int diff = RoomQueue.Count - before;
 
-                TelegramMessage
+                if (diff != 0)
+                {
+                    TelegramMessage
                     .Append(DateTime.Now.ToString("HH:mm:ss.f"))
                     .Append("\n")
                     .Append("新增任务 ")
                     .Append(diff)
                     .Append("个 #newtask\n\n");
+                }
             }
 
             while (ProcessedRoom.Count > 600)
