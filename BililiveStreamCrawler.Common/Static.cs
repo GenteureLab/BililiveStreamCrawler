@@ -2,6 +2,6 @@
 {
     public static class Static
     {
-        public const string VERSION = "1";
+        public const string VERSION = "2";
     }
 }
