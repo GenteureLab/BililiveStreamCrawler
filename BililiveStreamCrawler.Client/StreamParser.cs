@@ -63,7 +63,7 @@ namespace BililiveStreamCrawler.Client
             {
                 using (var client = new HttpClient())
                 {
-                    client.Timeout = TimeSpan.FromSeconds(5);
+                    client.Timeout = TimeSpan.FromMinutes(2);
                     client.DefaultRequestHeaders.Accept.Clear();
                     client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("*/*"));
                     client.DefaultRequestHeaders.UserAgent.Clear();
