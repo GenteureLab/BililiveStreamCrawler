@@ -117,17 +117,22 @@ namespace BililiveStreamCrawler.Client
                 .ContinueWith((task) =>
                 {
                     StreamRooms.Remove(streamRoom);
-                    if (!task.IsFaulted)
-                    {
-                        StreamMetadata data = task.Result;
-                        Console.WriteLine("Success: " + streamRoom.Roomid);
-                        WebSocket.Send(JsonConvert.SerializeObject(new Command { Type = CommandType.CompleteSuccess, Room = streamRoom, Metadata = data }));
-                    }
-                    else
+                    if (task.IsFaulted)
                     {
                         string error = task.Exception.ToString();
                         Console.WriteLine("ERROR: " + streamRoom.Roomid + " " + task.Exception.InnerException.Message);
                         WebSocket.Send(JsonConvert.SerializeObject(new Command { Type = CommandType.CompleteFailed, Room = streamRoom, Error = error }));
+                    }
+                    else if (task.IsCanceled)
+                    {
+                        Console.WriteLine("ERROR: GetAsync Timed Out");
+                        WebSocket.Send(JsonConvert.SerializeObject(new Command { Type = CommandType.CompleteFailed, Room = streamRoom, Error = "GetAsync Timed Out" }));
+                    }
+                    else
+                    {
+                        StreamMetadata data = task.Result;
+                        Console.WriteLine("Success: " + streamRoom.Roomid);
+                        WebSocket.Send(JsonConvert.SerializeObject(new Command { Type = CommandType.CompleteSuccess, Room = streamRoom, Metadata = data }));
                     }
                 });
         }
